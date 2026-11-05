@@ -7,6 +7,17 @@ A Morphe port of [MojiRS/revanced-rif-patches](https://github.com/MojiRS/revance
 Patches: Disable ads (free only), Inline comment images, Fix comment video links, Fix imgur albums,
 Fix YouTube videos, YouTube player controls, Fix share links. See [PATCHES.md](PATCHES.md).
 
+## Add to Morphe Manager (auto-updates)
+
+In Morphe Manager, add this as a remote patch source:
+
+```
+https://raw.githubusercontent.com/fjunk12/Patch/HEAD/patches-bundle.json
+```
+
+Every build rewrites `patches-bundle.json` with a new `created_at`, and the download points at the latest
+`.mpp`, so Manager picks up rebuilds through its normal update check. (`HEAD` is the repo's default branch.)
+
 ## Get the .mpp
 
 Every push runs `.github/workflows/build.yml`, which builds `patches-<version>.mpp` and attaches it
