@@ -1,0 +1,52 @@
+name: Build Morphe patches
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build .mpp
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # The Morphe Gradle plugin and patcher are hosted on GitHub Packages,
+      # which the workflow's built-in token can read.
+      - name: Build patches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew :patches:buildAndroid --no-daemon
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: morphe-rif-patches
+          path: patches/build/libs/patches-*.mpp
+          if-no-files-found: error
+
+      - name: Publish pre-release with the .mpp
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(grep '^version' gradle.properties | cut -d= -f2 | tr -d ' ')
+          tag="v${version}-morphe"
+          file=$(ls patches/build/libs/patches-*.mpp | grep -v -e sources -e javadoc | head -1)
+          cp "$file" patches.mpp
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$file" patches.mpp --clobber
+          else
+            gh release create "$tag" "$file" patches.mpp --prerelease --target "$GITHUB_SHA" \
+              --title "rif patches $version (Morphe)" \
+              --notes "Morphe port of MojiRS/revanced-rif-patches $version for rif is fun 5.6.22. Download patches.mpp and add it in Morphe Manager as a local patch source."
+          fi
